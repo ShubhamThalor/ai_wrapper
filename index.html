@@ -1,0 +1,24 @@
+<form id="healthForm">
+    <input type="number" id="weight" placeholder="Weight (kg)">
+    <input type="number" id="height" placeholder="Height (cm)">
+    <input type="text" id="goal" placeholder="Your Goal">
+    <button type="submit">Get Plan</button>
+</form>
+<div id="result"></div>
+
+<script>
+    document.getElementById('healthForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const response = await fetch('http://localhost:8000/recommendation', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                weight: document.getElementById('weight').value,
+                height: document.getElementById('height').value,
+                goal: document.getElementById('goal').value
+            })
+        });
+        const data = await response.json();
+        document.getElementById('result').innerText = data.plan;
+    };
+</script>
