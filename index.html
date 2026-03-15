@@ -311,7 +311,6 @@
                 resultDiv.className = "result-box error-box";
                 resultDiv.innerText = "CONNECTION FAILED. Backend down.\n\nDetails: " + error.message;
             } finally {
-                // Remove Loading State
                 submitBtn.disabled = false;
                 btnText.innerText = "Generate Protocol";
                 spinner.style.display = "none";
