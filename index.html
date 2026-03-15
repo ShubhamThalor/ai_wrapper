@@ -1,24 +1,323 @@
-<form id="healthForm">
-    <input type="number" id="weight" placeholder="Weight (kg)">
-    <input type="number" id="height" placeholder="Height (cm)">
-    <input type="text" id="goal" placeholder="Your Goal">
-    <button type="submit">Get Plan</button>
-</form>
-<div id="result"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Plan Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        /* Gritty Dark Background with Grid */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0f0f13;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+            padding: 40px 20px;
+            margin: 0;
+            overflow-x: hidden;
+            position: relative;
+        }
 
-<script>
-    document.getElementById('healthForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const response = await fetch('http://localhost:8000/recommendation', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                weight: document.getElementById('weight').value,
-                height: document.getElementById('height').value,
+        /* Massive Background Text to fill empty sides */
+        .side-text {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 8vw;
+            font-weight: 900;
+            /* Increased opacity and added a subtle red shadow so it's much more visible now */
+            color: rgba(255, 255, 255, 0.08); 
+            text-shadow: 2px 2px 10px rgba(255, 42, 42, 0.1);
+            text-transform: uppercase;
+            letter-spacing: 15px;
+            pointer-events: none;
+            z-index: 0;
+            white-space: nowrap;
+        }
+        
+        .side-text.left {
+            left: 2vw;
+            writing-mode: vertical-rl;
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .side-text.right {
+            right: 2vw;
+            writing-mode: vertical-rl;
+        }
+
+        /* Hide side text on smaller screens so it doesn't overlap the card */
+        @media (max-width: 900px) {
+            .side-text { display: none; }
+        }
+
+        /* Aggressive Card Styling */
+        .card {
+            background: #1a1a21;
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            border-radius: 4px;
+            border: 2px solid #ff2a2a; /* Sharp Red */
+            box-shadow: 10px 10px 0px rgba(255, 42, 42, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffffff;
+            border-bottom: 4px solid #ff2a2a;
+            padding-bottom: 10px;
+            display: inline-block;
+            width: 100%;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            background-color: #0f0f13;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-family: inherit;
+            color: #fff;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: #475569;
+        }
+
+        input:focus {
+            border-color: #ff2a2a;
+            box-shadow: 0 0 15px rgba(255, 42, 42, 0.3);
+        }
+
+        /* Bold Button */
+        button {
+            width: 100%;
+            padding: 16px;
+            margin-top: 15px;
+            background-color: #ff2a2a;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            background-color: #ff4d4d;
+            box-shadow: 0 0 20px rgba(255, 42, 42, 0.4);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        button:disabled {
+            background-color: #475569;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Result Area */
+        #result-container {
+            margin-top: 30px;
+            display: none;
+            animation: slideDown 0.4s ease forwards;
+        }
+
+        .result-box {
+            background: #0f0f13;
+            padding: 25px;
+            border-radius: 4px;
+            border-left: 4px solid #ff2a2a;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        /* Markdown Styling for Dark Mode */
+        .result-box h3, .result-box h4 {
+            color: #ffffff;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .result-box ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        .result-box li {
+            margin-bottom: 8px;
+            color: #cbd5e1;
+        }
+        .result-box strong {
+            color: #ff2a2a;
+        }
+
+        .error-box {
+            border-left-color: #ef4444;
+            background: #1f0f0f;
+            color: #f87171;
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="side-text left">Strength</div>
+    <div class="side-text right">Discipline</div>
+
+    <div class="card">
+        <h2>Initiate Plan</h2>
+        
+        <form id="healthForm">
+            <div class="form-group">
+                <label for="age">Age (Years)</label>
+                <input type="number" id="age" placeholder="25" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="weight">Weight (kg)</label>
+                <input type="number" id="weight" placeholder="80.5" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="height">Height (cm)</label>
+                <input type="number" id="height" placeholder="180" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="goal">Objective</label>
+                <input type="text" id="goal" placeholder="Build Muscle, Cut Fat" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">
+                <span class="spinner" id="spinner"></span>
+                <span id="btnText">Generate Protocol</span>
+            </button>
+        </form>
+
+        <div id="result-container">
+            <div id="result" class="result-box"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('healthForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const resultContainer = document.getElementById('result-container');
+            const resultDiv = document.getElementById('result');
+
+            // Loading State
+            submitBtn.disabled = true;
+            btnText.innerText = "Processing...";
+            spinner.style.display = "block";
+            resultContainer.style.display = "none";
+            resultDiv.className = "result-box"; 
+
+            const payload = {
+                age: parseInt(document.getElementById('age').value),
+                weight: parseFloat(document.getElementById('weight').value),
+                height: parseFloat(document.getElementById('height').value),
                 goal: document.getElementById('goal').value
-            })
-        });
-        const data = await response.json();
-        document.getElementById('result').innerText = data.plan;
-    };
-</script>
+            };
+
+            try {
+                // ENDPOINT
+                const response = await fetch('http://127.0.0.1:8000/recommendation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = marked.parse(data.plan);
+                } else {
+                    resultDiv.className = "result-box error-box";
+                    resultDiv.innerText = "SYSTEM ERROR: " + JSON.stringify(data.detail, null, 2);
+                }
+            } catch (error) {
+                resultDiv.className = "result-box error-box";
+                resultDiv.innerText = "CONNECTION FAILED. Backend down.\n\nDetails: " + error.message;
+            } finally {
+                // Remove Loading State
+                submitBtn.disabled = false;
+                btnText.innerText = "Generate Protocol";
+                spinner.style.display = "none";
+                resultContainer.style.display = "block";
+            }
+        };
+    </script>
+</body>
+</html>

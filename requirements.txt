@@ -2,3 +2,5 @@ fastapi
 supabase
 pydantic
 google.generativeai
+dotenv
+uvicorn
